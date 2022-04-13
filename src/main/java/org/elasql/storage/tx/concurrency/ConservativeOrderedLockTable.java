@@ -119,9 +119,6 @@ public class ConservativeOrderedLockTable {
 	 * 
 	 */
 	void sLock(Object obj, long txNum, int series) {
-		TransactionProfiler profiler = TransactionProfiler.getLocalProfiler();
-		profiler.startComponentProfilerAtGivenStage("OU3 - SLock", 3);
-		
 		Object anchor = getRecordLatch(obj);
 
 		synchronized (anchor) {
@@ -130,7 +127,6 @@ public class ConservativeOrderedLockTable {
 			// check if it has already held the lock
 			if (hasSLock(lockers, txNum)) {
 				lockers.requestQueue.remove(txNum);
-				profiler.stopComponentProfilerAtGivenStage("OU3 - SLock", 3);
 				return;
 			}
 
@@ -156,7 +152,6 @@ public class ConservativeOrderedLockTable {
 //								name, obj, head));
 //					}
 
-					profiler.startComponentProfilerAtGivenStage("OU3 - Wait in SLock " + series, 3);
 					anchor.wait();
 
 					// Since a transaction may delete the lockers of an object
@@ -164,7 +159,6 @@ public class ConservativeOrderedLockTable {
 					// here, instead of using lockers it obtains earlier.
 					lockers = prepareLockers(obj);
 					head = lockers.requestQueue.peek();
-					profiler.stopComponentProfilerAtGivenStage("OU3 - Wait in SLock " + series, 3);
 				}
 
 				// For debug
@@ -186,7 +180,6 @@ public class ConservativeOrderedLockTable {
 				throw new LockAbortException("Interrupted when waitting for lock");
 			}
 		}
-		profiler.stopComponentProfilerAtGivenStage("OU3 - SLock", 3);
 	}
 
 	/**
@@ -247,11 +240,7 @@ public class ConservativeOrderedLockTable {
 	 * @param txNum a transaction number
 	 * 
 	 */
-	void xLock(Object obj, long txNum, int series) {
-		TransactionProfiler profiler = TransactionProfiler.getLocalProfiler();
-		
-		profiler.startComponentProfilerAtGivenStage("OU3 - XLock", 3);
-		
+	void xLock(Object obj, long txNum, int series) {	
 		// See the comments in sLock(..) for the explanation of the algorithm
 		Object anchor = getRecordLatch(obj);
 
@@ -260,7 +249,6 @@ public class ConservativeOrderedLockTable {
 
 			if (hasXLock(lockers, txNum)) {
 				lockers.requestQueue.remove(txNum);
-				profiler.stopComponentProfilerAtGivenStage("OU3 - XLock", 3);
 				return;
 			}
 
@@ -290,12 +278,9 @@ public class ConservativeOrderedLockTable {
 //								"%s waits for xlock of %s from tx.%d (head of queue)",
 //								name, obj, head));
 //					}
-
-					profiler.startComponentProfilerAtGivenStage("OU3 - Wait in XLock " + series, 3);
 					anchor.wait();
 					lockers = prepareLockers(obj);
 					head = lockers.requestQueue.peek();
-					profiler.stopComponentProfilerAtGivenStage("OU3 - Wait in XLock " + series, 3);
 				}
 
 				// For debug
@@ -313,7 +298,6 @@ public class ConservativeOrderedLockTable {
 				throw new LockAbortException("Interrupted when waitting for lock");
 			}
 		}
-		profiler.stopComponentProfilerAtGivenStage("OU3 - XLock", 3);
 	}
 
 	/**
@@ -324,13 +308,10 @@ public class ConservativeOrderedLockTable {
 	 * 
 	 */
 	void xLockForBlock(Object obj, long txNum) {
-		TransactionProfiler profiler = TransactionProfiler.getLocalProfiler();
 		// See the comments in sLock(..) for the explanation of the algorithm
 		Object anchor = getBlockLatch(obj);
 
-		profiler.startComponentProfilerAtGivenStage("OU7 - xLockForBlock - syncrhonized(anchor)", 7);
 		synchronized (anchor) {
-			profiler.stopComponentProfilerAtGivenStage("OU7 - xLockForBlock - syncrhonized(anchor)", 7);
 //			long duration = System.nanoTime() - start;
 //			if (duration > 1000_000) {
 //				System.out.print("syncrhonized(anchor) > 1ms, " + (BlockId) obj);
@@ -343,7 +324,6 @@ public class ConservativeOrderedLockTable {
 
 			try {
 //				long start = System.nanoTime();
-				profiler.startComponentProfilerAtGivenStage("OU7 - xLockForBlock - while (!xLockable())", 7);
 //				int wakeUpCount = 0;
 				
 				while (!xLockable(lockers, txNum)) {
@@ -354,7 +334,6 @@ public class ConservativeOrderedLockTable {
 //				if (obj instanceof BlockId && ((BlockId) obj).toString().contains("file order_line.tbl, block 0")) {
 //					System.out.println("wakeUpCount: " + wakeUpCount + ", waitingTime: " + (System.nanoTime() - start));
 //				}
-				profiler.stopComponentProfilerAtGivenStage("OU7 - xLockForBlock - while (!xLockable())", 7);
 //				long duration = System.nanoTime() - start;
 //				if (duration > 5000_000) {
 //					System.out.print("anchor.wait() > 5ms, " + (BlockId) obj);
